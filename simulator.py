@@ -164,37 +164,44 @@ def FSE_signal_TR_ex(angle_ex_rad, angles_rad, TE, TR, T1, T2, B1=1.):
     """Same as FSE_signal2_TR_ex, but only returns Mxy"""
     return FSE_signal2_TR_ex(angle_ex_rad, angles_rad, TE, TR, T1, T2, B1)[0]
 
+
 def FSE_signal_TR(angles_rad, TE, TR, T1, T2, B1=1.):
     """Same as FSE_signal2_TR, but only returns Mxy"""
     return FSE_signal2_TR(angles_rad, TE, TR, T1, T2, B1)[0]
+
 
 def FSE_signal2_TR(angles_rad, TE, TR, T1, T2, B1=1.):
     """Same as FSE_signal2, but includes finite TR"""
     pi = torch.tensor(np.pi, device=T2.device)
     return FSE_signal2_TR_ex(pi/2, angles_rad, TE, TR, T1, T2, 1.)
 
+
 def FSE_signal2_TR_ex(angle_ex_rad, angles_rad, TE, TR, T1, T2, B1=1.):
     """Same as FSE_signal2_ex, but includes finite TR"""
     T = angles_rad.shape[1]
     Mxy, Mz = FSE_signal2_ex(angle_ex_rad, angles_rad, TE, T1, T2, B1)
     UR = TR - T * TE
-    E1 = torch.exp(-UR/T1)[:,None,None]
-    sig = Mxy * (1 - E1) / (1 - Mz[:,-1,:][:,None,:] * E1)
+    E1 = torch.exp(-UR/T1)[:, None, None]
+    sig = Mxy * (1 - E1) / (1 - Mz[:, -1, :][:, None, :] * E1)
     return sig, Mz
+
 
 def FSE_signal_ex(angle_ex_rad, angles_rad, TE, T1, T2, B1=1.):
     """Same as FSE_signal2_ex, but only returns Mxy"""
     return FSE_signal2_ex(angle_ex_rad, angles_rad, TE, T1, T2, B1)[0]
+
 
 def FSE_signal(angles_rad, TE, T1, T2):
     """Same as FSE_signal2, but only returns Mxy"""
     z = FSE_signal2(angles_rad, TE, T1, T2)[0]
     return z
 
+
 def FSE_signal2(angles_rad, TE, T1, T2):
     """Same as FSE_signal2_ex, but assumes excitation pulse is 90 degrees"""
     pi = torch.tensor(np.pi, device=T2.device)
     return FSE_signal2_ex(pi/2, angles_rad, TE, T1, T2)
+
 
 def FSE_signal2_ex(angle_ex_rad, angles_rad, TE, T1, T2, B1=1.):
     """Simulate Fast Spin-Echo CPMG sequence with specific flip angle train.
