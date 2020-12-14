@@ -19,10 +19,10 @@ for simulator in ["New", "Old"]:
         y = df[df['Simulator'].str.match(simulator) & df['Device'].str.match(device)]
         x = y.loc[:, 'Batch Size']
         y = y.loc[:, 'Time']
-        plt.plot(x, np.log10(y), label=f'{simulator} simulator on {device}', linestyle=linestyles[i])
+        plt.plot(x, np.log10(y), label=f'{simulator} simulator on {device}')
         i += 1
 
-plt.legend(loc=9, bbox_to_anchor=(1.17, 0.65))
+plt.legend(loc=9, bbox_to_anchor=(1.17, 0.65), frameon=True)
 plt.xlabel('Batch Size')
 plt.ylabel('$\log_{10}$ Time')
 plt.title('Batch size vs. $\log_{10}$ time')
@@ -32,7 +32,7 @@ plt.close('all')
 
 fig = plt.figure()
 ax = plt.axes()
-linestyles = ['solid', 'dashed', 'dashdot', 'dotted']
+linestyles = ['solid', 'dashdot', 'dashed', 'dotted']
 i = 0
 for simulator in ["New", "Old"]:
     for device in ["cpu", "cuda"]:
@@ -41,7 +41,7 @@ for simulator in ["New", "Old"]:
         y = y.loc[:, 'Speed']
         plt.plot(x, y, label=f'{simulator} simulator on {device}', linestyle=linestyles[i])
         i += 1
-plt.legend(loc=9, bbox_to_anchor=(1.17, 0.65))
+plt.legend(loc=9, bbox_to_anchor=(1.17, 0.65), frameon=True)
 plt.xlabel('Batch Size')
 plt.ylabel('Speed in microseconds')
 plt.title('Batch size vs. Speed in microseconds')
