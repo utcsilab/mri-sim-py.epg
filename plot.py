@@ -20,13 +20,13 @@ for simulator in ["Parallelized", "Naive"]:
         y = df[df['Simulator'].str.match(sims[simulator]) & df['Device'].str.match(device)]
         x = y.loc[:, 'Batch Size']
         y = y.loc[:, 'Time']
-        plt.plot(x, np.log10(y), label=f'{simulator} EPG on {device}')
+        plt.semilogy(x, y, label=f'{simulator} EPG on {device.upper()}')
         i += 1
 
 plt.legend(loc=9, bbox_to_anchor=(1.2, 0.65), frameon=True)
 plt.xlabel('Batch Size')
-plt.ylabel('$\log_{10}$ Time')
-plt.title('Batch size vs. $\log_{10}$ time')
+plt.ylabel('Time in microseconds')
+plt.title('Batch size vs. time in microseconds')
 plt.savefig('Time.png', bbox_inches='tight')
 
 plt.close('all')
@@ -41,10 +41,10 @@ for simulator in ["Parallelized", "Naive"]:
         y = df[df['Simulator'].str.match(sims[simulator]) & df['Device'].str.match(device)]
         x = y.loc[:, 'Batch Size']
         y = y.loc[:, 'Speed']
-        plt.plot(x, y, label=f'{simulator} EPG on {device}', linestyle=linestyles[i])
+        plt.plot(x, y, label=f'{simulator} EPG on {device.upper()}', linestyle=linestyles[i])
         i += 1
 plt.legend(loc=9, bbox_to_anchor=(1.2, 0.65), frameon=True)
 plt.xlabel('Batch Size')
-plt.ylabel('Speed in microseconds')
-plt.title('Batch size vs. Speed in microseconds')
+plt.ylabel('Samples processed per microsecond')
+plt.title('Batch size vs. Samples processed per microsecond')
 plt.savefig('Speed.png', bbox_inches='tight')
