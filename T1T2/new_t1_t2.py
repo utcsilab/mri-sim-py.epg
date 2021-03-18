@@ -1,9 +1,12 @@
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import torch
-from torch.utils.data import Dataset
-from simulator import FSE_signal_TR
-from tqdm import tqdm
 from matplotlib import pyplot as plt
+from torch.utils.data import Dataset
+from tqdm import tqdm
+
+from simulator import FSE_signal_TR
 
 T = 32
 TE = 9
@@ -13,9 +16,10 @@ T2_init = 200.0
 device = torch.device("cuda")
 dtype = torch.float32
 batch_size = 28000
-num_epochs = 2000
+num_epochs = 700
 theta_hat_init_angle = 105.0
-step_size_init_val = 3 * 1e6
+step_size_1_init_val = 3 * 1e5
+step_size_2_init_val = 3 * 1e6
 res_arr = np.ones((288 * 288, 96))
 t1_arr = np.ones(288 * 288)
 t2_arr = np.ones(288 * 288)
@@ -82,7 +86,8 @@ def pbnet(y_meas, theta_hat, step_size, TE, TR, testFlag=True):
     sig_est = None
     loss = None
     for kk in tqdm(range(num_epochs)):
-        sig_est = FSE_signal_TR(theta_hat, TE, TRs, myt1, myt2, B1=1.0).squeeze()
+        sig_est = FSE_signal_TR(
+            theta_hat, TE, TRs, myt1, myt2, B1=1.0).squeeze()
         rho_est = torch.sum(y_meas * sig_est, axis=1) / torch.sum(
             sig_est * sig_est, axis=1
         )
@@ -91,8 +96,8 @@ def pbnet(y_meas, theta_hat, step_size, TE, TR, testFlag=True):
         loss = torch.sum(residual ** 2)
 
         g = torch.autograd.grad(loss, [myt1, myt2], create_graph=not testFlag)
-        myt1 = myt1 - step_size * g[0]
-        myt2 = myt2 - step_size * g[1]
+        myt1 = myt1 - step_size[0] * g[0]
+        myt2 = myt2 - step_size[1] * g[1]
     return myt1, myt2, sig_est, loss, rho_est
 
 
@@ -106,11 +111,13 @@ data_loader = torch.utils.data.DataLoader(
 )
 
 final_theta = np.ones((1, T)) * theta_hat_init_angle
-theta_hat_init = torch.tensor(final_theta / 180 * np.pi, dtype=torch.float32).to(device)
+theta_hat_init = torch.tensor(
+    final_theta / 180 * np.pi, dtype=torch.float32).to(device)
 theta_hat = theta_hat_init.detach().clone()
 theta_hat.requires_grad = True
 
-step_size_init = torch.tensor([step_size_init_val], dtype=torch.float32).to(device)
+step_size_init = torch.tensor(
+    [step_size_1_init_val, step_size_2_init_val], dtype=torch.float32).to(device)
 step_size = step_size_init.detach().clone()
 step_size.requires_grad = True
 
@@ -119,19 +126,23 @@ for i, y in tqdm(enumerate(data_loader)):
     y_norm = torch.norm(y_m)
     y_meas = y_m / y_norm
 
-    myt1, myt2, y_est, loss, pd = pbnet(
+    myt1, myt2, y_est, loss, proton_density = pbnet(
         y_meas, theta_hat, step_size, TE, TRs, testFlag=True
     )
 
-    res_arr[i * batch_size : i * batch_size + y.shape[0]] = y_est.detach().cpu().numpy()
+    res_arr[i * batch_size: i * batch_size +
+            y.shape[0]] = y_est.detach().cpu().numpy()
 
-    t1_arr[i * batch_size : i * batch_size + y.shape[0]] = myt1.detach().cpu().numpy()
-    t2_arr[i * batch_size : i * batch_size + y.shape[0]] = myt2.detach().cpu().numpy()
+    t1_arr[i * batch_size: i * batch_size +
+           y.shape[0]] = myt1.detach().cpu().numpy()
+    t2_arr[i * batch_size: i * batch_size +
+           y.shape[0]] = myt2.detach().cpu().numpy()
 
-    pixel_norm[i * batch_size : i * batch_size + y.shape[0]] = (
+    pixel_norm[i * batch_size: i * batch_size + y.shape[0]] = (
         y_norm.detach().cpu().numpy()
     )
-    pd_arr[i * batch_size : i * batch_size + y.shape[0]] = pd.detach().cpu().numpy()
+    pd_arr[i * batch_size: i * batch_size +
+           y.shape[0]] = proton_density.detach().cpu().numpy()
 
 print(myt1, myt2)
 
@@ -177,6 +188,19 @@ plt.colorbar()
 plt.savefig(f"{IMAGE_PATH}/t2.png", bbox_inches="tight")
 
 plt.figure()
-plt.imshow(pd_map_sorted.reshape(288, 288) * mask.reshape(288, 288), cmap="gray")
+plt.imshow(pd_map_sorted.reshape(288, 288) *
+           mask.reshape(288, 288), cmap="gray")
 plt.axis("off")
 plt.savefig(f"{IMAGE_PATH}/pd.png", bbox_inches="tight")
+
+df = pd.DataFrame()
+df['T1'] = t1_map_sorted.ravel()
+
+plt.figure()
+sns.histplot(data=df['T1'])
+plt.savefig(f"{IMAGE_PATH}/hist_t1.png", bbox_inches="tight")
+
+df['T2'] = t2_map_sorted.ravel()
+plt.figure()
+sns.histplot(data=df['T2'])
+plt.savefig(f"{IMAGE_PATH}/hist_t2.png", bbox_inches="tight")
