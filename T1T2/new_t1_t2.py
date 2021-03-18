@@ -16,7 +16,7 @@ T2_init = 200.0
 device = torch.device("cuda")
 dtype = torch.float32
 batch_size = 28000
-num_epochs = 700
+num_epochs = 2000
 theta_hat_init_angle = 105.0
 step_size_1_init_val = 3 * 1e5
 step_size_2_init_val = 3 * 1e6
@@ -26,6 +26,7 @@ t2_arr = np.ones(288 * 288)
 pd_arr = np.ones(288 * 288)
 pixel_norm = np.ones(288 * 288)
 IMAGE_PATH = "images"
+FILE_PATH = 'files'
 
 _ridx = np.random.permutation(288 * 288)
 
@@ -204,3 +205,8 @@ df['T2'] = t2_map_sorted.ravel()
 plt.figure()
 sns.histplot(data=df['T2'])
 plt.savefig(f"{IMAGE_PATH}/hist_t2.png", bbox_inches="tight")
+
+np.save(f'{FILE_PATH}/mask.npy', mask)
+np.save(f'{FILE_PATH}/t1_map_sorted.npy', t1_map_sorted)
+np.save(f'{FILE_PATH}/t2_map_sorted.npy', t2_map_sorted)
+np.save(f'{FILE_PATH}/pd_map_sorted.npy', pd_map_sorted)
