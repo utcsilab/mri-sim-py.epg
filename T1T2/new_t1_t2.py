@@ -11,7 +11,7 @@ from simulator import FSE_signal_TR
 T = 32
 TE = 9
 TRs = np.array([860, 1830, 2800])
-T1_init = 1000.0
+T1_init = 1500.0
 T2_init = 200.0
 device = torch.device("cuda")
 dtype = torch.float32
@@ -20,7 +20,7 @@ num_epochs = 2000
 theta_hat_init_angle = 105.0
 step_size_1_init_val = 3 * 1e5
 step_size_2_init_val = 3 * 1e6
-res_arr = np.ones((288 * 288, 96))
+res_arr = np.ones((288 * 288, 3*T))
 t1_arr = np.ones(288 * 288)
 t2_arr = np.ones(288 * 288)
 pd_arr = np.ones(288 * 288)
@@ -39,18 +39,12 @@ class MRIDataset(Dataset):
         rng = np.random.default_rng()
         brain = np.rot90(
             np.abs(np.load("pics_out_96ETL_experimental_data.npy"))
-        ).reshape(288 * 288, 96)
+        ).reshape(288 * 288, 3*T)
         print(brain.shape)
         brain_ridx = brain[_ridx, :]
 
         self.len = brain_ridx.shape[0]
         self.y_data = brain_ridx
-        self.t1_data = torch.tensor(
-            np.ones(brain_ridx.shape[0]) * 1000.0, dtype=torch.float32
-        )
-        self.t2_data = torch.tensor(
-            np.ones(brain_ridx.shape[0]) * 200.0, dtype=torch.float32
-        )
 
     def __getitem__(self, index):
         return self.y_data[index, :]
@@ -59,7 +53,7 @@ class MRIDataset(Dataset):
         return self.len
 
 
-def pbnet(y_meas, theta_hat, step_size, TE, TR, testFlag=True):
+def pbnet(y_meas, theta_hat, step_size, TE, TR, loss_arr, testFlag=True):
     """
     y_meas: [batch_size, T] -- Input Signal
     theta: [1, T] -- Flip angles
@@ -95,11 +89,12 @@ def pbnet(y_meas, theta_hat, step_size, TE, TR, testFlag=True):
         sig_est = rho_est[:, None] * sig_est
         residual = y_meas - sig_est
         loss = torch.sum(residual ** 2)
+        loss_arr.append(float(loss.cpu().detach().numpy()))
 
         g = torch.autograd.grad(loss, [myt1, myt2], create_graph=not testFlag)
         myt1 = myt1 - step_size[0] * g[0]
         myt2 = myt2 - step_size[1] * g[1]
-    return myt1, myt2, sig_est, loss, rho_est
+    return myt1, myt2, sig_est, loss, rho_est, loss_arr
 
 
 dataset = MRIDataset()
@@ -122,13 +117,15 @@ step_size_init = torch.tensor(
 step_size = step_size_init.detach().clone()
 step_size.requires_grad = True
 
+loss_arr = []
+
 for i, y in tqdm(enumerate(data_loader)):
     y_m = y.to(device)
     y_norm = torch.norm(y_m)
     y_meas = y_m / y_norm
 
-    myt1, myt2, y_est, loss, proton_density = pbnet(
-        y_meas, theta_hat, step_size, TE, TRs, testFlag=True
+    myt1, myt2, y_est, loss, proton_density, loss_arr = pbnet(
+        y_meas, theta_hat, step_size, TE, TRs, loss_arr, testFlag=True
     )
 
     res_arr[i * batch_size: i * batch_size +
@@ -177,7 +174,7 @@ plt.imshow(mask.reshape((288, 288)))
 plt.savefig(f"{IMAGE_PATH}/mask.png", bbox_inches="tight")
 
 plt.figure()
-plt.imshow(t1_map_sorted.reshape(288, 288) * mask.reshape(288, 288))
+plt.imshow(t1_map_sorted.reshape(288, 288) * mask.reshape(288, 288), vmax=2500)
 plt.axis("off")
 plt.colorbar()
 plt.savefig(f"{IMAGE_PATH}/t1.png", bbox_inches="tight")
@@ -195,8 +192,8 @@ plt.axis("off")
 plt.savefig(f"{IMAGE_PATH}/pd.png", bbox_inches="tight")
 
 df = pd.DataFrame()
-df['T1'] = t1_map_sorted.ravel()
 
+df['T1'] = t1_map_sorted.ravel()
 plt.figure()
 sns.histplot(data=df['T1'])
 plt.savefig(f"{IMAGE_PATH}/hist_t1.png", bbox_inches="tight")
@@ -205,6 +202,10 @@ df['T2'] = t2_map_sorted.ravel()
 plt.figure()
 sns.histplot(data=df['T2'])
 plt.savefig(f"{IMAGE_PATH}/hist_t2.png", bbox_inches="tight")
+
+plt.figure()
+plt.plot(loss_arr)
+plt.savefig(f"{IMAGE_PATH}/loss.png", bbox_inches="tight")
 
 np.save(f'{FILE_PATH}/mask.npy', mask)
 np.save(f'{FILE_PATH}/t1_map_sorted.npy', t1_map_sorted)
