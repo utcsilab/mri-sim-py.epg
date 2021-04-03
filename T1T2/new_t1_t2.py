@@ -15,8 +15,21 @@ T1_init = 1500.0
 T2_init = 200.0
 device = torch.device("cuda")
 dtype = torch.float32
+
+vals1 = np.linspace(1500, 2500, 100)
+vals2 = np.linspace(50, 500, 100)
+
+vals1 = np.repeat(vals1, vals2.shape[0])
+vals2 = np.array(vals2.tolist()*100)
+
+T1_vals = torch.tensor(vals1, device=device, dtype=dtype, requires_grad=False)
+T2_vals = torch.tensor(vals2, device=device, dtype=dtype, requires_grad=False)
+dictionary = []
+
+
 batch_size = 28000
-num_epochs = 2000
+max_batch = 2000
+num_epochs = 500
 theta_hat_init_angle = 105.0
 step_size_1_init_val = 3 * 1e5
 step_size_2_init_val = 3 * 1e6
@@ -38,7 +51,7 @@ class MRIDataset(Dataset):
     def __init__(self):
         rng = np.random.default_rng()
         brain = np.rot90(
-            np.abs(np.load("pics_out_96ETL_experimental_data.npy"))
+            np.abs(np.load("/home/ubuntu/mri-sim-py.epg/T1T2/pics_out_96ETL_experimental_data.npy"))
         ).reshape(288 * 288, 3*T)
         print(brain.shape)
         brain_ridx = brain[_ridx, :]
@@ -53,29 +66,29 @@ class MRIDataset(Dataset):
         return self.len
 
 
-def pbnet(y_meas, theta_hat, step_size, TE, TR, loss_arr, testFlag=True):
+def pbnet(y_meas, theta_hat, step_size, TE, TR, loss_arr, dictionary, testFlag=True):
     """
     y_meas: [batch_size, T] -- Input Signal
     theta: [1, T] -- Flip angles
     """
-    myt1 = (
-        torch.ones(
-            (y_meas.shape[0]),
-            dtype=torch.float32,
-            requires_grad=True,
-            device=theta_hat.device,
-        )
-        * T1_init
-    )
-    myt2 = (
-        torch.ones(
-            (y_meas.shape[0]),
-            dtype=torch.float32,
-            requires_grad=True,
-            device=theta_hat.device,
-        )
-        * T2_init
-    )
+    arr1 = []
+    arr2 = []
+    with torch.no_grad():
+        for i in range(batch_size // max_batch):
+            curr_y = y_meas[i*max_batch:i*max_batch+max_batch].detach().cpu()
+            dictionary = dictionary.detach().cpu()
+            distances = torch.sum((dictionary.T - curr_y[..., None]) ** 2, dim=1)
+            min_index = torch.argmin(distances, dim=1)
+            del distances
+            arr1.append(T1_vals[min_index])
+            arr2.append(T2_vals[min_index])
+
+        myt1 = torch.cat(arr1, dim=0)
+        myt2 = torch.cat(arr2, dim=0)
+
+    myt1 = myt1.requires_grad_()
+    myt2 = myt2.requires_grad_()
+
     if testFlag:
         y_meas = y_meas.detach()
     sig_est = None
@@ -119,13 +132,16 @@ step_size.requires_grad = True
 
 loss_arr = []
 
+with torch.no_grad():
+    dictionary = FSE_signal_TR(theta_hat, TE, TRs, T1_vals, T2_vals)
+
 for i, y in tqdm(enumerate(data_loader)):
     y_m = y.to(device)
     y_norm = torch.norm(y_m)
     y_meas = y_m / y_norm
 
     myt1, myt2, y_est, loss, proton_density, loss_arr = pbnet(
-        y_meas, theta_hat, step_size, TE, TRs, loss_arr, testFlag=True
+        y_meas, theta_hat, step_size, TE, TRs, loss_arr, dictionary, testFlag=True
     )
 
     res_arr[i * batch_size: i * batch_size +
