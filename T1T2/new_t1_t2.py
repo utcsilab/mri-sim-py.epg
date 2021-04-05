@@ -29,7 +29,7 @@ dictionary = []
 
 batch_size = 28000
 max_batch = 2000
-num_epochs = 500
+num_epochs = 2000
 theta_hat_init_angle = 105.0
 step_size_1_init_val = 3 * 1e5
 step_size_2_init_val = 3 * 1e6
