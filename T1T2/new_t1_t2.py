@@ -45,8 +45,6 @@ _ridx = np.random.permutation(288 * 288)
 
 
 class MRIDataset(Dataset):
-    """ Decoder MRI dataset with all 180 degrees"""
-
     # Initialize your data, download, etc.
     def __init__(self):
         rng = np.random.default_rng()
@@ -168,17 +166,6 @@ for i in range(t2_map_sorted.shape[0]):
     t2_map_sorted[_ridx[i]] = t2_arr[i]
     pd_map_sorted[_ridx[i]] = pd_arr[i]
 
-
-plt.figure()
-plt.imshow(t1_arr.reshape(288, 288), cmap="gray")
-plt.colorbar()
-plt.savefig(f"{IMAGE_PATH}/T1 Array.png", bbox_inches="tight")
-
-plt.figure()
-plt.imshow(t2_arr.reshape(288, 288), cmap="gray")
-plt.colorbar()
-plt.savefig(f"{IMAGE_PATH}/T2 Array.png", bbox_inches="tight")
-
 brain = np.rot90(np.abs(np.load("pics_out_96ETL_experimental_data.npy"))).reshape(
     288 * 288, 96
 )
@@ -190,22 +177,22 @@ plt.imshow(mask.reshape((288, 288)))
 plt.savefig(f"{IMAGE_PATH}/mask.png", bbox_inches="tight")
 
 plt.figure()
-plt.imshow(t1_map_sorted.reshape(288, 288) * mask.reshape(288, 288), vmax=2500)
+plt.imshow(np.rot90(t1_map_sorted.reshape(288, 288) * mask.reshape(288, 288), 3), vmax=2500)
 plt.axis("off")
 plt.colorbar()
-plt.savefig(f"{IMAGE_PATH}/t1.png", bbox_inches="tight")
+plt.savefig(f"{IMAGE_PATH}/t1.pdf", bbox_inches="tight")
 
 plt.figure()
-plt.imshow(t2_map_sorted.reshape(288, 288) * mask.reshape(288, 288))
+plt.imshow(np.rot90(t2_map_sorted.reshape(288, 288) * mask.reshape(288, 288), 3))
 plt.axis("off")
 plt.colorbar()
-plt.savefig(f"{IMAGE_PATH}/t2.png", bbox_inches="tight")
+plt.savefig(f"{IMAGE_PATH}/t2.pdf", bbox_inches="tight")
 
 plt.figure()
-plt.imshow(pd_map_sorted.reshape(288, 288) *
-           mask.reshape(288, 288), cmap="gray")
+plt.imshow(np.rot90(pd_map_sorted.reshape(288, 288) *
+           mask.reshape(288, 288), 3), cmap="gray")
 plt.axis("off")
-plt.savefig(f"{IMAGE_PATH}/pd.png", bbox_inches="tight")
+plt.savefig(f"{IMAGE_PATH}/pd.pdf", bbox_inches="tight")
 
 df = pd.DataFrame()
 

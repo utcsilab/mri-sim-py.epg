@@ -2,12 +2,12 @@ import torch
 from simulator import FSE_signal_TR
 
 
-def FIM_T2_and_M0(angles_rad, TE, TR, M0, T1, T2):
+def FIM_T2_and_M0(angles_rad, TE, TRs, M0, T1, T2):
     # _T2 = T2.clone().requires_grad_()
     # _M0 = M0.clone().requires_grad_()
     def myfun(m0, t2):
         # return m0[:,None,None] * FSE_signal_driveq(angles_rad, TE, TR, T1, t2)
-        return m0[:, None, None] * FSE_signal_TR(angles_rad, TE, TR, T1, t2)
+        return m0[:, None, None] * FSE_signal_TR(angles_rad, TE, TRs, T1, t2)
 
     batch_size = T2.shape[0]
     dZ = torch.autograd.functional.jacobian(myfun, (M0, T2), create_graph=True)

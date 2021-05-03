@@ -49,7 +49,7 @@ plt.xlabel('Echo Number', fontsize=FONT_SIZE)
 plt.ylabel('Angle in degrees', fontsize=FONT_SIZE)
 plt.title('Optimized flip angles using Cramer-Rao Lower Bound', fontsize=FONT_SIZE)
 plt.plot(list(range(y.shape[0])), y)
-plt.savefig('Fig 4b - CRLB.png', bbox_inches='tight')
+plt.savefig('Fig 4b - CRLB.pdf', bbox_inches='tight')
 plt.close('all')
 
 T = 32 
@@ -78,5 +78,5 @@ plt.xticks(fontsize=FONT_SIZE)
 plt.yticks(fontsize=FONT_SIZE)
 for i in range(100):
     plt.plot(list(range(sig.shape[1])), sig[i*5])
-plt.savefig('Fig 1b - signals.png', bbox_inches='tight')
+plt.savefig('Fig 1b - signals.pdf', bbox_inches='tight')
 plt.close('all')
