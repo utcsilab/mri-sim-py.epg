@@ -3,8 +3,9 @@ import CRLB
 import torch 
 import numpy as np 
 import matplotlib.pyplot as plt 
+from tqdm import tqdm
 
-IMAGE_PATH = "images"
+IMAGE_PATH = "/home/ubuntu/mri-sim-py.epg/T1T2/images"
 
 def solve_for_CRLB(angles_rad, TE, TR, M0, T1, T2, nitr=20, lr=.00001, SAR=60):
     #angles_rad = torch.nn.Parameter(angles_rad)
@@ -89,4 +90,25 @@ plt.xlabel('Epochs', fontsize=FONT_SIZE)
 plt.ylabel('Training Loss', fontsize=FONT_SIZE)
 plt.title('Training Loss Curve', fontsize=FONT_SIZE)
 plt.savefig(f"{IMAGE_PATH}/crlb_fig3.pdf", bbox_inches="tight")
+plt.close('all')
+
+T1 = torch.tensor([1000.], dtype=torch.float32)
+T2_vals = np.linspace(20, 400, 50)
+CRLB_vals_init = np.zeros(T2_vals.shape[0])
+CRLB_vals_final = np.zeros(T2_vals.shape[0])
+for i, t2 in enumerate(tqdm(T2_vals)):
+    T2 = torch.tensor([t2], dtype=torch.float32)
+    CRLB_vals_init[i] = CRLB.CRLB_T2(angles_rad_torch, TE, TR, M0_torch, T1, T2)
+    CRLB_vals_final[i] = CRLB.CRLB_T2(angles_rad_torch_final, TE, TR, M0_torch, T1, T2)
+
+plt.figure();
+plt.style.use('seaborn')
+plt.plot(T2_vals, CRLB_vals_init, label="Constant angles")
+plt.plot(T2_vals, CRLB_vals_final, label="Optimized angles")
+plt.xticks(fontsize=FONT_SIZE)
+plt.yticks(fontsize=FONT_SIZE)
+plt.xlabel('$T_2$ value (msec)', fontsize=FONT_SIZE)
+plt.ylabel('Relative Loss [dB]', fontsize=FONT_SIZE)
+plt.legend()
+plt.savefig(f"{IMAGE_PATH}/crlb_fig4.pdf", bbox_inches="tight")
 plt.close('all')
