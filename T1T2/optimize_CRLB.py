@@ -3,6 +3,7 @@ import CRLB
 import torch 
 import numpy as np 
 import matplotlib.pyplot as plt 
+from matplotlib.ticker import MaxNLocator
 from tqdm import tqdm
 
 IMAGE_PATH = "/home/ubuntu/mri-sim-py.epg/T1T2/images"
@@ -64,7 +65,7 @@ plt.yticks(fontsize=FONT_SIZE)
 plt.xlabel('Echo Number', fontsize=FONT_SIZE)
 plt.ylabel('Angle in degrees', fontsize=FONT_SIZE)
 plt.title('Optimized flip angles using Cramer-Rao Lower Bound', fontsize=FONT_SIZE)
-plt.legend()
+plt.legend(frameon=True, fontsize=FONT_SIZE)
 plt.savefig(f"{IMAGE_PATH}/crlb_fig1.pdf", bbox_inches="tight")
 plt.close('all')
 
@@ -77,17 +78,18 @@ plt.yticks(fontsize=FONT_SIZE)
 plt.xlabel('Echo Number', fontsize=FONT_SIZE)
 plt.ylabel('Signal', fontsize=FONT_SIZE)
 plt.title('Simulation of Signals', fontsize=FONT_SIZE)
-plt.legend()
+plt.legend(frameon=True, fontsize=FONT_SIZE)
 plt.savefig(f"{IMAGE_PATH}/crlb_fig2.pdf", bbox_inches="tight")
 plt.close('all')
 
-plt.figure();
+ax = plt.figure().gca()
 plt.style.use('seaborn')
 plt.plot(loss)
 plt.xticks(fontsize=FONT_SIZE)
 plt.yticks(fontsize=FONT_SIZE)
 plt.xlabel('Epochs', fontsize=FONT_SIZE)
 plt.ylabel('Training Loss', fontsize=FONT_SIZE)
+ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 plt.title('Training Loss Curve', fontsize=FONT_SIZE)
 plt.savefig(f"{IMAGE_PATH}/crlb_fig3.pdf", bbox_inches="tight")
 plt.close('all')
@@ -96,6 +98,7 @@ T1 = torch.tensor([1000.], dtype=torch.float32)
 T2_vals = np.linspace(20, 400, 50)
 CRLB_vals_init = np.zeros(T2_vals.shape[0])
 CRLB_vals_final = np.zeros(T2_vals.shape[0])
+angles_rad_torch = torch.tensor(angles_rad)[None,:]
 for i, t2 in enumerate(tqdm(T2_vals)):
     T2 = torch.tensor([t2], dtype=torch.float32)
     CRLB_vals_init[i] = CRLB.CRLB_T2(angles_rad_torch, TE, TR, M0_torch, T1, T2)
@@ -108,7 +111,8 @@ plt.plot(T2_vals, CRLB_vals_final, label="Optimized angles")
 plt.xticks(fontsize=FONT_SIZE)
 plt.yticks(fontsize=FONT_SIZE)
 plt.xlabel('$T_2$ value (msec)', fontsize=FONT_SIZE)
-plt.ylabel('Relative Loss [dB]', fontsize=FONT_SIZE)
-plt.legend()
+plt.ylabel('CRLB', fontsize=FONT_SIZE)
+plt.title('CRLB($T_2$) vs $T_2$', fontsize=FONT_SIZE)
+plt.legend(frameon=True, fontsize=FONT_SIZE)
 plt.savefig(f"{IMAGE_PATH}/crlb_fig4.pdf", bbox_inches="tight")
 plt.close('all')

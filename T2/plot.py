@@ -55,8 +55,8 @@ plt.close('all')
 T = 32 
 TE = 9 
 TR = 2800
-T1_vals = np.linspace(500, 1000, 1000)   # 100 elements
-T2_vals = np.linspace(20, 500, 1000)     # 100 elements
+T1_vals = np.linspace(500, 1000, 100)   # 100 elements
+T2_vals = np.linspace(20, 500, 100)     # 100 elements
 
 device = torch.device('cpu')
 
@@ -68,7 +68,7 @@ T2 = torch.tensor(T2_vals, dtype=torch.float32, device=device)
 
 sig = FSE_signal_TR(angles_rad, TE, TR, T1, T2, B1=1.).squeeze().numpy()
 print(T1[:3], T2[:3])
-
+print(T1.shape, T2.shape)
 fig = plt.figure()
 ax = plt.axes()
 plt.xlabel('Echo Number', fontsize=FONT_SIZE)
